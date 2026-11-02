@@ -2,60 +2,58 @@
 
 ## 1. Model Name  
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+**VibeMatch 1.0**
 
 ---
 
 ## 2. Intended Use  
 
-Describe what your recommender is designed to do and who it is for. 
+**Goal / task:** VibeMatch suggests the top 5 songs from a small catalog that best fit one listener's taste. It predicts how well each song "fits" a user, based on their favorite genre, favorite mood, how energetic they want the music to be, and whether they like acoustic sound.
 
-Prompts:  
+**Assumptions about the user:** it assumes the user can describe their taste with one genre, one mood, and one energy level. It also assumes that taste stays the same; it does not know what time of day it is or what the user just listened to.
 
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+**Intended use:** classroom exploration. It is meant for learning how content-based recommenders turn data into a ranked list, and for testing how weights and biases change the results.
+
+**Not intended for:** real users or real music apps. It should not be used to decide what music gets promoted, to judge artists, or to make any decision that matters to a real person. The catalog is too small and hand-made, and the rules are too simple.
 
 ---
 
 ## 3. How the Model Works  
 
-Explain your scoring approach in simple language.  
+Each song has a genre, a mood, an energy level from 0 to 1, and an acousticness level from 0 to 1. The user says what genre and mood they like, what energy level they want, and (optionally) whether they like acoustic music.
 
-Prompts:  
+VibeMatch gives every song points:
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
+- **+2 points** if the genre matches.
+- **+1 point** if the mood matches.
+- **Up to 1.5 points** for energy. The closer the song's energy is to what the user wants, the more points it gets. A perfect match gets all 1.5; a song that is far off gets very few.
+- **Up to 0.5 points** for acoustic fit. If the user likes acoustic music, more acoustic songs get more points; if not, more electric/produced songs do.
 
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+Then it adds up the points, sorts all songs from highest to lowest, and shows the top 5 with a list of reasons (for example, "genre match (+2.0)").
+
+**Diversity mode (optional):** with `--diverse`, VibeMatch builds the top 5 one song at a time. If a song's artist is already on the list it loses 1 point, and if its genre is already on the list it loses 0.5 points. The reasons list shows the penalty, so it's clear why a song moved down.
+
+**Changes from the starter:** the starter code returned the first few songs with no scoring. I added the full scoring recipe, the reasons list, the acoustic-fit rule, and the sorting step.
 
 ---
 
 ## 4. Data  
 
-Describe the dataset the model uses.  
-
-Prompts:  
-
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+- **Size:** 19 songs. The starter had 10; I added 9 more.
+- **Features:** title, artist, genre, mood, energy, tempo (BPM), valence (positivity), danceability, and acousticness. Only genre, mood, energy, and acousticness are used in scoring.
+- **Genres:** pop, indie pop, lofi, rock, ambient, jazz, synthwave, hip-hop, classical, country, metal, r&b, edm, folk, reggae, blues.
+- **Moods:** happy, chill, intense, relaxed, moody, focused, confident, peaceful, nostalgic, angry, romantic, energetic, melancholic, sad.
+- **What I added:** the 9 new songs cover genres and moods the starter was missing, and stretch energy from 0.15 to 0.97.
+- **Limits:** most genres have only one song, so a metal or blues fan gets one real match and then filler. There are no lyrics, languages, release years, or popularity info. There is no song that is both sad and high-energy. The songs and numbers are made up, not measured from real audio.
 
 ---
 
 ## 5. Strengths  
 
-Where does your system seem to work well  
-
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+- It works well for users with clear, "normal" taste. Chill Lofi, High-Energy Pop, and Deep Intense Rock all got top picks that matched my intuition (Library Rain, Sunrise City, Storm Runner).
+- Energy closeness does a good job separating "study music" from "workout music." The lofi and rock lists had zero songs in common.
+- Every recommendation comes with reasons, so it is easy to see *why* a song was picked and to spot when the logic is wrong.
+- It still gives sensible results when the genre doesn't exist in the catalog (K-pop): mood and energy take over and return happy, mid-energy songs.
 
 ---
 
@@ -105,174 +103,301 @@ Run with `python -m src.main --experiment`. The max possible score changes from 
 
 ```
 === High-Energy Pop ===  {'genre': 'pop', 'mood': 'happy', 'energy': 0.8}
-------------------------------------------------------------
-1. Sunrise City by Neon Echo  [pop/happy]
-   Score: 4.47
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.82 vs target 0.80 (+1.47)
-2. Gym Hero by Max Pulse  [pop/intense]
-   Score: 3.30
-     - genre match (+2.0)
-     - energy 0.93 vs target 0.80 (+1.30)
-3. Rooftop Lights by Indigo Parade  [indie pop/happy]
-   Score: 2.44
-     - mood match (+1.0)
-     - energy 0.76 vs target 0.80 (+1.44)
-4. Concrete Crown by Verse Theory  [hip-hop/confident]
-   Score: 1.47
-     - energy 0.78 vs target 0.80 (+1.47)
-5. Night Drive Loop by Neon Echo  [synthwave/moody]
-   Score: 1.42
-     - energy 0.75 vs target 0.80 (+1.42)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Sunrise City           | Neon Echo        | pop / happy            | 4.47   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.82 vs target 0.80 (+1.47)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Gym Hero               | Max Pulse        | pop / intense          | 3.30   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | energy 0.93 vs target 0.80 (+1.30)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Rooftop Lights         | Indigo Parade    | indie pop / happy      | 2.44   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.76 vs target 0.80 (+1.44)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Concrete Crown         | Verse Theory     | hip-hop / confident    | 1.47   | energy 0.78 vs target 0.80 (+1.47)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Night Drive Loop       | Neon Echo        | synthwave / moody      | 1.42   | energy 0.75 vs target 0.80 (+1.42)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ```
 === Chill Lofi ===  {'genre': 'lofi', 'mood': 'chill', 'energy': 0.4, 'likes_acoustic': True}
-------------------------------------------------------------
-1. Library Rain by Paper Lanterns  [lofi/chill]
-   Score: 4.85
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.35 vs target 0.40 (+1.42)
-     - acoustic fit (+0.43)
-2. Midnight Coding by LoRoom  [lofi/chill]
-   Score: 4.82
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.42 vs target 0.40 (+1.47)
-     - acoustic fit (+0.35)
-3. Focus Flow by LoRoom  [lofi/focused]
-   Score: 3.89
-     - genre match (+2.0)
-     - energy 0.40 vs target 0.40 (+1.50)
-     - acoustic fit (+0.39)
-4. Spacewalk Thoughts by Orbit Bloom  [ambient/chill]
-   Score: 2.78
-     - mood match (+1.0)
-     - energy 0.28 vs target 0.40 (+1.32)
-     - acoustic fit (+0.46)
-5. Coffee Shop Stories by Slow Stereo  [jazz/relaxed]
-   Score: 1.90
-     - energy 0.37 vs target 0.40 (+1.46)
-     - acoustic fit (+0.45)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Library Rain           | Paper Lanterns   | lofi / chill           | 4.85   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.35 vs target 0.40 (+1.42)       |
+|     |                        |                  |                        |        | acoustic fit (+0.43)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Midnight Coding        | LoRoom           | lofi / chill           | 4.82   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.42 vs target 0.40 (+1.47)       |
+|     |                        |                  |                        |        | acoustic fit (+0.35)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Focus Flow             | LoRoom           | lofi / focused         | 3.89   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | energy 0.40 vs target 0.40 (+1.50)       |
+|     |                        |                  |                        |        | acoustic fit (+0.39)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Spacewalk Thoughts     | Orbit Bloom      | ambient / chill        | 2.78   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.28 vs target 0.40 (+1.32)       |
+|     |                        |                  |                        |        | acoustic fit (+0.46)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Coffee Shop Stories    | Slow Stereo      | jazz / relaxed         | 1.90   | energy 0.37 vs target 0.40 (+1.46)       |
+|     |                        |                  |                        |        | acoustic fit (+0.45)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ```
 === Deep Intense Rock ===  {'genre': 'rock', 'mood': 'intense', 'energy': 0.92, 'likes_acoustic': False}
-------------------------------------------------------------
-1. Storm Runner by Voltline  [rock/intense]
-   Score: 4.93
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.91 vs target 0.92 (+1.48)
-     - acoustic fit (+0.45)
-2. Gym Hero by Max Pulse  [pop/intense]
-   Score: 2.96
-     - mood match (+1.0)
-     - energy 0.93 vs target 0.92 (+1.48)
-     - acoustic fit (+0.47)
-3. Pulse Overdrive by Kilowatt  [edm/energetic]
-   Score: 1.95
-     - energy 0.95 vs target 0.92 (+1.46)
-     - acoustic fit (+0.49)
-4. Iron Furnace by Blackthorn  [metal/angry]
-   Score: 1.91
-     - energy 0.97 vs target 0.92 (+1.43)
-     - acoustic fit (+0.48)
-5. Sunrise City by Neon Echo  [pop/happy]
-   Score: 1.76
-     - energy 0.82 vs target 0.92 (+1.35)
-     - acoustic fit (+0.41)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Storm Runner           | Voltline         | rock / intense         | 4.93   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.91 vs target 0.92 (+1.48)       |
+|     |                        |                  |                        |        | acoustic fit (+0.45)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Gym Hero               | Max Pulse        | pop / intense          | 2.96   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.93 vs target 0.92 (+1.48)       |
+|     |                        |                  |                        |        | acoustic fit (+0.47)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 1.95   | energy 0.95 vs target 0.92 (+1.46)       |
+|     |                        |                  |                        |        | acoustic fit (+0.49)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Iron Furnace           | Blackthorn       | metal / angry          | 1.91   | energy 0.97 vs target 0.92 (+1.43)       |
+|     |                        |                  |                        |        | acoustic fit (+0.48)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Sunrise City           | Neon Echo        | pop / happy            | 1.76   | energy 0.82 vs target 0.92 (+1.35)       |
+|     |                        |                  |                        |        | acoustic fit (+0.41)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ```
 === Conflicted (Sad but 0.9 Energy) ===  {'genre': 'blues', 'mood': 'sad', 'energy': 0.9}
-------------------------------------------------------------
-1. Rainy Day Blues by Old Ellis  [blues/sad]
-   Score: 3.65
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.33 vs target 0.90 (+0.64)
-2. Storm Runner by Voltline  [rock/intense]
-   Score: 1.48
-     - energy 0.91 vs target 0.90 (+1.48)
-3. Gym Hero by Max Pulse  [pop/intense]
-   Score: 1.46
-     - energy 0.93 vs target 0.90 (+1.46)
-4. Pulse Overdrive by Kilowatt  [edm/energetic]
-   Score: 1.43
-     - energy 0.95 vs target 0.90 (+1.43)
-5. Iron Furnace by Blackthorn  [metal/angry]
-   Score: 1.40
-     - energy 0.97 vs target 0.90 (+1.40)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Rainy Day Blues        | Old Ellis        | blues / sad            | 3.65   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.33 vs target 0.90 (+0.64)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Storm Runner           | Voltline         | rock / intense         | 1.48   | energy 0.91 vs target 0.90 (+1.48)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Gym Hero               | Max Pulse        | pop / intense          | 1.46   | energy 0.93 vs target 0.90 (+1.46)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 1.43   | energy 0.95 vs target 0.90 (+1.43)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Iron Furnace           | Blackthorn       | metal / angry          | 1.40   | energy 0.97 vs target 0.90 (+1.40)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ```
 === Ghost Genre (K-pop) ===  {'genre': 'k-pop', 'mood': 'happy', 'energy': 0.6}
-------------------------------------------------------------
-1. Rooftop Lights by Indigo Parade  [indie pop/happy]
-   Score: 2.26
-     - mood match (+1.0)
-     - energy 0.76 vs target 0.60 (+1.26)
-2. Sunrise City by Neon Echo  [pop/happy]
-   Score: 2.17
-     - mood match (+1.0)
-     - energy 0.82 vs target 0.60 (+1.17)
-3. Dusty Highway Home by Wade Callahan  [country/nostalgic]
-   Score: 1.43
-     - energy 0.55 vs target 0.60 (+1.43)
-4. Island Breeze by Sunny Roots  [reggae/relaxed]
-   Score: 1.38
-     - energy 0.52 vs target 0.60 (+1.38)
-5. Velvet Hours by Amara Lane  [r&b/romantic]
-   Score: 1.35
-     - energy 0.50 vs target 0.60 (+1.35)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Rooftop Lights         | Indigo Parade    | indie pop / happy      | 2.26   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.76 vs target 0.60 (+1.26)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Sunrise City           | Neon Echo        | pop / happy            | 2.17   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.82 vs target 0.60 (+1.17)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Dusty Highway Home     | Wade Callahan    | country / nostalgic    | 1.43   | energy 0.55 vs target 0.60 (+1.43)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Island Breeze          | Sunny Roots      | reggae / relaxed       | 1.38   | energy 0.52 vs target 0.60 (+1.38)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Velvet Hours           | Amara Lane       | r&b / romantic         | 1.35   | energy 0.50 vs target 0.60 (+1.35)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ```
 === Out-of-Range Energy (1.5) ===  {'genre': 'classical', 'mood': 'peaceful', 'energy': 1.5}
-------------------------------------------------------------
-1. Moonlit Sonata Redux by Clara Vane  [classical/peaceful]
-   Score: 2.47
-     - genre match (+2.0)
-     - mood match (+1.0)
-     - energy 0.15 vs target 1.50 (+-0.53)
-2. Iron Furnace by Blackthorn  [metal/angry]
-   Score: 0.70
-     - energy 0.97 vs target 1.50 (+0.70)
-3. Pulse Overdrive by Kilowatt  [edm/energetic]
-   Score: 0.67
-     - energy 0.95 vs target 1.50 (+0.67)
-4. Gym Hero by Max Pulse  [pop/intense]
-   Score: 0.65
-     - energy 0.93 vs target 1.50 (+0.65)
-5. Storm Runner by Voltline  [rock/intense]
-   Score: 0.61
-     - energy 0.91 vs target 1.50 (+0.61)
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Moonlit Sonata Redux   | Clara Vane       | classical / peaceful   | 2.47   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.15 vs target 1.50 (+-0.53)      |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Iron Furnace           | Blackthorn       | metal / angry          | 0.70   | energy 0.97 vs target 1.50 (+0.70)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 0.67   | energy 0.95 vs target 1.50 (+0.67)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Gym Hero               | Max Pulse        | pop / intense          | 0.65   | energy 0.93 vs target 1.50 (+0.65)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Storm Runner           | Voltline         | rock / intense         | 0.61   | energy 0.91 vs target 1.50 (+0.61)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+### Diversity mode (fairness / filter-bubble fix)
+
+Run with `python -m src.main --diverse`. While building the top 5, a song loses **1.0** point if its artist is already on the list and **0.5** if its genre is already on the list. The penalty shows up in the reasons, so nothing is hidden.
+
+**Why it helps fairness:** without it, one artist or one genre can take over a whole list just because it matches the label, and other artists never get a chance to show up. The penalty doesn't ban repeats; a really strong match can still win. It just makes the system earn a repeat instead of handing it out for free.
+
+**What changed:**
+
+- **High-Energy Pop:** Night Drive Loop (a second Neon Echo song) dropped out and Storm Runner took its spot. Gym Hero's score fell from 3.30 to 2.80 because it's the second pop song, but it still held #2.
+- **Chill Lofi:** Spacewalk Thoughts (ambient) moved above Focus Flow, which was the second LoRoom song *and* the third lofi song. The list now has three genres instead of two.
+- **Deep Intense Rock:** Sunrise City (a second pop song) was replaced by Concrete Crown (hip-hop).
+- **Conflicted, K-pop, Out-of-Range:** no change, because their top 5 already had different artists and genres.
+
+It didn't fix everything. Gym Hero still shows up in four lists, because the penalty only looks at repeats *inside* one list, not across different users.
+
+```
+=== High-Energy Pop ===  {'genre': 'pop', 'mood': 'happy', 'energy': 0.8}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Sunrise City           | Neon Echo        | pop / happy            | 4.47   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.82 vs target 0.80 (+1.47)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Gym Hero               | Max Pulse        | pop / intense          | 2.80   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | energy 0.93 vs target 0.80 (+1.30)       |
+|     |                        |                  |                        |        | repeat genre penalty (-0.5)              |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Rooftop Lights         | Indigo Parade    | indie pop / happy      | 2.44   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.76 vs target 0.80 (+1.44)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Concrete Crown         | Verse Theory     | hip-hop / confident    | 1.47   | energy 0.78 vs target 0.80 (+1.47)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Storm Runner           | Voltline         | rock / intense         | 1.33   | energy 0.91 vs target 0.80 (+1.33)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+```
+=== Chill Lofi ===  {'genre': 'lofi', 'mood': 'chill', 'energy': 0.4, 'likes_acoustic': True}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Library Rain           | Paper Lanterns   | lofi / chill           | 4.85   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.35 vs target 0.40 (+1.42)       |
+|     |                        |                  |                        |        | acoustic fit (+0.43)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Midnight Coding        | LoRoom           | lofi / chill           | 4.32   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.42 vs target 0.40 (+1.47)       |
+|     |                        |                  |                        |        | acoustic fit (+0.35)                     |
+|     |                        |                  |                        |        | repeat genre penalty (-0.5)              |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Spacewalk Thoughts     | Orbit Bloom      | ambient / chill        | 2.78   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.28 vs target 0.40 (+1.32)       |
+|     |                        |                  |                        |        | acoustic fit (+0.46)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Focus Flow             | LoRoom           | lofi / focused         | 2.39   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | energy 0.40 vs target 0.40 (+1.50)       |
+|     |                        |                  |                        |        | acoustic fit (+0.39)                     |
+|     |                        |                  |                        |        | repeat artist penalty (-1.0)             |
+|     |                        |                  |                        |        | repeat genre penalty (-0.5)              |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Coffee Shop Stories    | Slow Stereo      | jazz / relaxed         | 1.90   | energy 0.37 vs target 0.40 (+1.46)       |
+|     |                        |                  |                        |        | acoustic fit (+0.45)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+```
+=== Deep Intense Rock ===  {'genre': 'rock', 'mood': 'intense', 'energy': 0.92, 'likes_acoustic': False}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Storm Runner           | Voltline         | rock / intense         | 4.93   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.91 vs target 0.92 (+1.48)       |
+|     |                        |                  |                        |        | acoustic fit (+0.45)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Gym Hero               | Max Pulse        | pop / intense          | 2.96   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.93 vs target 0.92 (+1.48)       |
+|     |                        |                  |                        |        | acoustic fit (+0.47)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 1.95   | energy 0.95 vs target 0.92 (+1.46)       |
+|     |                        |                  |                        |        | acoustic fit (+0.49)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Iron Furnace           | Blackthorn       | metal / angry          | 1.91   | energy 0.97 vs target 0.92 (+1.43)       |
+|     |                        |                  |                        |        | acoustic fit (+0.48)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Concrete Crown         | Verse Theory     | hip-hop / confident    | 1.75   | energy 0.78 vs target 0.92 (+1.29)       |
+|     |                        |                  |                        |        | acoustic fit (+0.46)                     |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+```
+=== Conflicted (Sad but 0.9 Energy) ===  {'genre': 'blues', 'mood': 'sad', 'energy': 0.9}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Rainy Day Blues        | Old Ellis        | blues / sad            | 3.65   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.33 vs target 0.90 (+0.64)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Storm Runner           | Voltline         | rock / intense         | 1.48   | energy 0.91 vs target 0.90 (+1.48)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Gym Hero               | Max Pulse        | pop / intense          | 1.46   | energy 0.93 vs target 0.90 (+1.46)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 1.43   | energy 0.95 vs target 0.90 (+1.43)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Iron Furnace           | Blackthorn       | metal / angry          | 1.40   | energy 0.97 vs target 0.90 (+1.40)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+```
+=== Ghost Genre (K-pop) ===  {'genre': 'k-pop', 'mood': 'happy', 'energy': 0.6}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Rooftop Lights         | Indigo Parade    | indie pop / happy      | 2.26   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.76 vs target 0.60 (+1.26)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Sunrise City           | Neon Echo        | pop / happy            | 2.17   | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.82 vs target 0.60 (+1.17)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Dusty Highway Home     | Wade Callahan    | country / nostalgic    | 1.43   | energy 0.55 vs target 0.60 (+1.43)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Island Breeze          | Sunny Roots      | reggae / relaxed       | 1.38   | energy 0.52 vs target 0.60 (+1.38)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Velvet Hours           | Amara Lane       | r&b / romantic         | 1.35   | energy 0.50 vs target 0.60 (+1.35)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+```
+
+```
+=== Out-of-Range Energy (1.5) ===  {'genre': 'classical', 'mood': 'peaceful', 'energy': 1.5}
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| #   | Title                  | Artist           | Genre / Mood           | Score  | Reasons                                  |
++=====+========================+==================+========================+========+==========================================+
+| 1   | Moonlit Sonata Redux   | Clara Vane       | classical / peaceful   | 2.47   | genre match (+2.0)                       |
+|     |                        |                  |                        |        | mood match (+1.0)                        |
+|     |                        |                  |                        |        | energy 0.15 vs target 1.50 (+-0.53)      |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 2   | Iron Furnace           | Blackthorn       | metal / angry          | 0.70   | energy 0.97 vs target 1.50 (+0.70)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 3   | Pulse Overdrive        | Kilowatt         | edm / energetic        | 0.67   | energy 0.95 vs target 1.50 (+0.67)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 4   | Gym Hero               | Max Pulse        | pop / intense          | 0.65   | energy 0.93 vs target 1.50 (+0.65)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
+| 5   | Storm Runner           | Voltline         | rock / intense         | 0.61   | energy 0.91 vs target 1.50 (+0.61)       |
++-----+------------------------+------------------+------------------------+--------+------------------------------------------+
 ```
 
 ---
 
 ## 8. Future Work  
 
-Ideas for how you would improve the model next.  
-
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+1. **Fuzzy genre and mood matching.** Give partial credit for related labels ("indie pop" is close to "pop", "relaxed" is close to "chill") instead of all-or-nothing.
+2. **Validate input and add a "nothing fits" signal.** Reject or clamp energy targets outside 0 to 1 (this would fix the negative score I found), and warn the user when even the top song has a low score.
+3. **Stronger diversity.** I added an artist/genre repeat penalty (`--diverse`), but it only works inside one list. Next I'd try something that also rewards songs that rarely get recommended, so the same few songs (like Gym Hero) don't show up for everyone.
 
 ---
 
 ## 9. Personal Reflection  
 
-A few sentences about your experience.  
+My biggest learning moment was the sad but high-energy profile. I knew it would struggle, but I didn't expect it to fail so confidently. It gave me one slow blues song and then four loud workout songs, each with a score and a list of reasons that looked totally legit. That's when I realized the reasons only explain what the math did. They don't tell you if the recommendation is actually any good.
 
-Prompts:  
+Using AI sped things up a lot. It helped me add songs to the dataset, write the scoring and sorting code, clean up the terminal output, and come up with edge cases I wouldn't have thought of, like an energy target of 1.5. But I still had to check its work. It broke `main.py` with a syntax error at one point, the starter import had to be fixed before `python -m src.main` would even run, and I had to look at the math to notice that out-of-range energy gives a negative score. I also had to decide for myself what counted as a bug to fix versus a weakness to write up.
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+What surprised me most is how real it feels. For my lofi profile, the top picks honestly looked like a playlist I'd make for studying at night, and the system has no idea what any of the songs sound like. It's just adding up points. It makes me look at the "made for you" stuff on real apps a little differently now.
+
+If I kept going, I'd add partial credit for similar genres and moods (indie pop should count a little for pop), something that pushes the same few songs (like Gym Hero) out of every list, since my diversity penalty only fixes repeats inside one list, and maybe a basic "people who liked this also liked" layer to see how collaborative filtering changes things.

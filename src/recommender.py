@@ -53,6 +53,10 @@ MOOD_WEIGHT = 1.0
 ENERGY_WEIGHT = 1.5
 ACOUSTIC_WEIGHT = 0.5
 
+# Diversity penalties applied while building the top-k list
+ARTIST_PENALTY = 1.0
+GENRE_PENALTY = 0.5
+
 INT_FIELDS = {"id"}
 FLOAT_FIELDS = {"energy", "tempo_bpm", "valence", "danceability", "acousticness"}
 
@@ -104,10 +108,35 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
 
     return score, reasons
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5, diverse: bool = False) -> List[Tuple[Dict, float, str]]:
     """Score every song, sort highest to lowest, and return the top k with explanations."""
     scored = []
     for song in songs:
         score, reasons = score_song(user_prefs, song)
-        scored.append((song, score, ", ".join(reasons)))
-    return sorted(scored, key=lambda item: item[1], reverse=True)[:k]
+        scored.append((song, score, reasons))
+    if diverse:
+        return _diverse_top_k(scored, k)
+    ranked = sorted(scored, key=lambda item: item[1], reverse=True)[:k]
+    return [(song, score, ", ".join(reasons)) for song, score, reasons in ranked]
+
+def _diverse_top_k(scored: List[Tuple[Dict, float, List[str]]], k: int) -> List[Tuple[Dict, float, str]]:
+    """Greedily pick the top k, penalizing artists and genres already in the list."""
+    picked = []
+    remaining = list(scored)
+    while remaining and len(picked) < k:
+        seen_artists = {song["artist"] for song, _, _ in picked}
+        seen_genres = {song["genre"] for song, _, _ in picked}
+        best = None
+        for song, score, reasons in remaining:
+            adjusted, extra = score, []
+            if song["artist"] in seen_artists:
+                adjusted -= ARTIST_PENALTY
+                extra.append(f"repeat artist penalty (-{ARTIST_PENALTY:.1f})")
+            if song["genre"] in seen_genres:
+                adjusted -= GENRE_PENALTY
+                extra.append(f"repeat genre penalty (-{GENRE_PENALTY:.1f})")
+            if best is None or adjusted > best[1]:
+                best = (song, adjusted, reasons + extra, (song, score, reasons))
+        picked.append(best[:3])
+        remaining.remove(best[3])
+    return [(song, score, ", ".join(reasons)) for song, score, reasons in picked]

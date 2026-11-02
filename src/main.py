@@ -33,15 +33,26 @@ PROFILES = {
 }
 
 
-def print_recommendations(name: str, user_prefs: dict, songs: list, k: int = 5) -> None:
-    """Print a ranked, explained list of recommendations for one profile."""
+def print_recommendations(name: str, user_prefs: dict, songs: list, k: int = 5, diverse: bool = False) -> None:
+    """Print a ranked, explained table of recommendations for one profile."""
+    results = recommender.recommend_songs(user_prefs, songs, k=k, diverse=diverse)
+    widths = [3, 22, 16, 22, 6, 40]
+    border = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
+
+    def row(cells):
+        return "| " + " | ".join(str(c).ljust(w) for c, w in zip(cells, widths)) + " |"
+
     print(f"\n=== {name} ===  {user_prefs}")
-    print("-" * 60)
-    for rank, (song, score, explanation) in enumerate(recommender.recommend_songs(user_prefs, songs, k=k), start=1):
-        print(f"{rank}. {song['title']} by {song['artist']}  [{song['genre']}/{song['mood']}]")
-        print(f"   Score: {score:.2f}")
-        for reason in explanation.split(", "):
-            print(f"     - {reason}")
+    print(border)
+    print(row(["#", "Title", "Artist", "Genre / Mood", "Score", "Reasons"]))
+    print(border.replace("-", "="))
+    for rank, (song, score, explanation) in enumerate(results, start=1):
+        reasons = explanation.split(", ")
+        first = [rank, song["title"], song["artist"], f"{song['genre']} / {song['mood']}", f"{score:.2f}", reasons[0]]
+        print(row(first))
+        for reason in reasons[1:]:
+            print(row(["", "", "", "", "", reason]))
+        print(border)
 
 
 def main() -> None:
@@ -50,9 +61,12 @@ def main() -> None:
         recommender.GENRE_WEIGHT = 1.0
         recommender.ENERGY_WEIGHT = 3.0
         print("EXPERIMENT: genre weight 1.0, energy weight 3.0")
+    diverse = "--diverse" in sys.argv
+    if diverse:
+        print("DIVERSITY MODE: -1.0 for a repeat artist, -0.5 for a repeat genre")
     songs = recommender.load_songs("data/songs.csv")
     for name, user_prefs in PROFILES.items():
-        print_recommendations(name, user_prefs, songs)
+        print_recommendations(name, user_prefs, songs, diverse=diverse)
     print()
 
 
