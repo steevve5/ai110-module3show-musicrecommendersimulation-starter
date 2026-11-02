@@ -127,15 +127,61 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
+Output of `python -m src.main` for the default pop/happy profile and the lofi/chill profile:
 
 ```
-# e.g.:
-# User profile: genre=indie, mood=chill, energy=low
-# Recommendations:
-#   1. ...
-#   2. ...
-#   3. ...
+Loaded songs: 19
+
+=== Pop / Happy ===  {'genre': 'pop', 'mood': 'happy', 'energy': 0.8}
+------------------------------------------------------------
+1. Sunrise City by Neon Echo  [pop/happy]
+   Score: 4.47
+     - genre match (+2.0)
+     - mood match (+1.0)
+     - energy 0.82 vs target 0.80 (+1.47)
+2. Gym Hero by Max Pulse  [pop/intense]
+   Score: 3.30
+     - genre match (+2.0)
+     - energy 0.93 vs target 0.80 (+1.30)
+3. Rooftop Lights by Indigo Parade  [indie pop/happy]
+   Score: 2.44
+     - mood match (+1.0)
+     - energy 0.76 vs target 0.80 (+1.44)
+4. Concrete Crown by Verse Theory  [hip-hop/confident]
+   Score: 1.47
+     - energy 0.78 vs target 0.80 (+1.47)
+5. Night Drive Loop by Neon Echo  [synthwave/moody]
+   Score: 1.42
+     - energy 0.75 vs target 0.80 (+1.42)
+
+=== Lofi / Chill ===  {'genre': 'lofi', 'mood': 'chill', 'energy': 0.4, 'likes_acoustic': True}
+------------------------------------------------------------
+1. Library Rain by Paper Lanterns  [lofi/chill]
+   Score: 4.85
+     - genre match (+2.0)
+     - mood match (+1.0)
+     - energy 0.35 vs target 0.40 (+1.42)
+     - acoustic fit (+0.43)
+2. Midnight Coding by LoRoom  [lofi/chill]
+   Score: 4.82
+     - genre match (+2.0)
+     - mood match (+1.0)
+     - energy 0.42 vs target 0.40 (+1.47)
+     - acoustic fit (+0.35)
+3. Focus Flow by LoRoom  [lofi/focused]
+   Score: 3.89
+     - genre match (+2.0)
+     - energy 0.40 vs target 0.40 (+1.50)
+     - acoustic fit (+0.39)
+4. Spacewalk Thoughts by Orbit Bloom  [ambient/chill]
+   Score: 2.78
+     - mood match (+1.0)
+     - energy 0.28 vs target 0.40 (+1.32)
+     - acoustic fit (+0.46)
+5. Coffee Shop Stories by Slow Stereo  [jazz/relaxed]
+   Score: 1.90
+     - energy 0.37 vs target 0.40 (+1.46)
+     - acoustic fit (+0.45)
 ```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->

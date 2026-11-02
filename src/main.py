@@ -9,30 +9,36 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
-from recommender import load_songs, recommend_songs
+try:
+    from .recommender import load_songs, recommend_songs
+except ImportError:
+    from recommender import load_songs, recommend_songs
+
+
+PROFILES = {
+    # Default starter profile
+    "Pop / Happy": {"genre": "pop", "mood": "happy", "energy": 0.8},
+    # Late-night study listener who wants calm, acoustic-leaning tracks
+    "Lofi / Chill": {"genre": "lofi", "mood": "chill", "energy": 0.40, "likes_acoustic": True},
+}
+
+
+def print_recommendations(name: str, user_prefs: dict, songs: list, k: int = 5) -> None:
+    """Print a ranked, explained list of recommendations for one profile."""
+    print(f"\n=== {name} ===  {user_prefs}")
+    print("-" * 60)
+    for rank, (song, score, explanation) in enumerate(recommend_songs(user_prefs, songs, k=k), start=1):
+        print(f"{rank}. {song['title']} by {song['artist']}  [{song['genre']}/{song['mood']}]")
+        print(f"   Score: {score:.2f}")
+        for reason in explanation.split(", "):
+            print(f"     - {reason}")
 
 
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
-
-    # Taste profile: a late-night study listener who wants calm, acoustic-leaning tracks
-    user_prefs = {
-        "genre": "lofi",
-        "mood": "chill",
-        "energy": 0.40,
-        "likes_acoustic": True,
-    }
-
-    recommendations = recommend_songs(user_prefs, songs, k=5)
-
-    print("\nTop recommendations:\n")
-    for rec in recommendations:
-        # You decide the structure of each returned item.
-        # A common pattern is: (song, score, explanation)
-        song, score, explanation = rec
-        print(f"{song['title']} - Score: {score:.2f}")
-        print(f"Because: {explanation}")
-        print()
+    songs = load_songs("data/songs.csv")
+    for name, user_prefs in PROFILES.items():
+        print_recommendations(name, user_prefs, songs)
+    print()
 
 
 if __name__ == "__main__":
